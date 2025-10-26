@@ -1,0 +1,16 @@
+#SPDX-License-Identifier: MIT
+---
+- name: Check pre-requirements
+  ansible.builtin.include_tasks: _pre_requirements.yml
+
+- name: Create LXC Container
+  ansible.builtin.include_tasks: _create_lxc.yml
+  when: lxc_install | bool
+
+- name: Configure LXC Container
+  ansible.builtin.include_tasks: _configure_lxc.yml
+  when: lxc_configure | bool
+
+- name: Delete LXC Container
+  ansible.builtin.include_tasks: _delete_lxc.yml
+  when: lxc_delete | default(false)

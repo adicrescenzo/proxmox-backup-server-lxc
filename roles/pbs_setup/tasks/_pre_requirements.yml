@@ -1,0 +1,52 @@
+---
+- name: Assert role behaviour variables are defined consistently
+  block:
+    - name: Verify that pbs_install and pbs_delete are not both true
+      ansible.builtin.assert:
+        that:
+          - not (pbs_install | default(false) and pbs_delete | default(false))
+        fail_msg: "pbs_install and pbs_delete cannot both be true at the same time."
+
+    - name: Verify that at least one of pbs_install, pbs_configure or pbs_delete is defined and true
+      ansible.builtin.assert:
+        that:
+          - pbs_install | default(false) or pbs_configure | default(false) or pbs_delete | default(false)
+        fail_msg: "At least one of pbs_install, pbs_configure or pbs_delete must be set to true."
+
+- name: Verify that license parameter have consistent value
+  ansible.builtin.assert:
+    that:
+      - pbs_license | default('community') in ['community', 'enterprise']
+    fail_msg: "pbs_license must be either 'community' or 'enterprise'."
+
+- name: Verify that NFS mount parameters are defined if mount_nfs is true
+  ansible.builtin.assert:
+    that:
+      - nfs_server is defined and nfs_server | length > 0
+      - nfs_share is defined and nfs_share | length > 0
+      - nfs_mount_point is defined and nfs_mount_point | length > 0
+    fail_msg: "nfs_server, nfs_share, and nfs_mount_point must be defined and non-empty when mount_nfs is true."
+  when: mount_nfs | bool | default(false)
+
+- name: Gather all facts including mount information
+  ansible.builtin.setup:
+    filter: ansible_mounts
+  when: mount_nfs | bool | default(false)
+
+- name: Check if NFS share is already mounted
+  ansible.builtin.set_fact:
+    _nfs_share_mounted: "{{ ansible_mounts | selectattr('mount', 'equalto', nfs_mount_point) | list | length > 0 }}"
+  when: mount_nfs | bool | default(false)  
+
+- name: Debug NFS share mount status
+  ansible.builtin.debug:
+    msg: "NFS share mounted: {{ _nfs_share_mounted }}"
+  when: mount_nfs | bool | default(false)
+
+- name: Ensure Proxmox Backup Server TLS parameters are defined
+  ansible.builtin.assert:
+    that:
+      - pbs_tls_cert is defined and pbs_tls_cert | length > 0
+      - pbs_tls_cert_key is defined and pbs_tls_cert_key | length > 0
+    fail_msg: "pbs_tls_cert and pbs_tls_cert_key must be defined and non-empty when pbs_tls_manage is true."
+  when: pbs_tls_manage | bool | default(false)

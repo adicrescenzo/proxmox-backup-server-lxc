@@ -1,0 +1,24 @@
+---
+- name: Assert role behaviour variables are defined consistently
+  block:
+    - name: Verify that lxc_install and lxc_delete are not both true
+      ansible.builtin.assert:
+        that:
+          - not (lxc_install | default(false) and lxc_delete | default(false))
+        fail_msg: "lxc_install and lxc_delete cannot both be true at the same time."
+
+    - name: Verify that at least one of lxc_install, lxc_configure or lxc_delete is defined and true
+      ansible.builtin.assert:
+        that:
+          - lxc_install | default(false) or lxc_configure | default(false) or lxc_delete | default(false)
+        fail_msg: "At least one of lxc_install, lxc_configure or lxc_delete must be set to true."
+
+- name: Assert mandatory role variables are defined
+  ansible.builtin.assert:
+    that:
+      - proxmox_node is defined and proxmox_node | length > 0
+      - proxmox_api_token_id is defined and proxmox_api_token_id | length > 0
+      - proxmox_api_token_secret is defined and proxmox_api_token_secret | length > 0
+      - lxc_id is defined and lxc_id > 0
+      - lxc_root_password is defined and lxc_root_password | length > 0
+    fail_msg: "One or more mandatory variables are not defined. Please specify all required variables."

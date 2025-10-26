@@ -1,0 +1,13 @@
+[Unit]
+Description=Mount NFS backups share
+After=network-online.target
+Wants=network-online.target
+
+[Mount]
+What={{ nfs_server }}:{{ nfs_share }}
+Where={{ nfs_mount_point }}
+Type=nfs
+Options={{ mount_options | default('vers=4,nouser,atime,auto,retrans=2,rw,dev,exec') }}
+
+[Install]
+WantedBy=multi-user.target

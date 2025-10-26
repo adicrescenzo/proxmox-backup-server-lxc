@@ -1,0 +1,138 @@
+---
+# Task file for uninstalling Proxmox Backup Server
+
+- name: Stop Proxmox Backup Server services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  ignore_errors: true
+  loop:
+    - proxmox-backup-proxy
+    - proxmox-backup
+    - proxmox-backup-banner
+
+- name: Unmount NFS share if mounted
+  block:
+    - name: Gather mount information
+      ansible.builtin.setup:
+        filter: ansible_mounts
+
+    - name: Check if NFS share is mounted
+      ansible.builtin.set_fact:
+        _nfs_mounted: "{{ ansible_mounts | selectattr('mount', 'equalto', nfs_mount_point | default('/mnt/nfs-backups')) | list | length > 0 }}"
+
+    - name: Stop and disable NFS mount service
+      ansible.builtin.systemd:
+        name: mnt-nfs\x2dbackups.mount
+        state: stopped
+        enabled: false
+      ignore_errors: true
+      when: _nfs_mounted
+
+    - name: Remove systemd mount unit file
+      ansible.builtin.file:
+        path: /etc/systemd/system/mnt-nfs\x2dbackups.mount
+        state: absent
+
+    - name: Reload systemd daemon
+      ansible.builtin.systemd:
+        daemon_reload: true
+  when: mount_nfs | default(false)
+
+- name: Remove Proxmox Backup Server packages
+  ansible.builtin.apt:
+    name:
+      - proxmox-backup-server
+      - proxmox-backup-client
+      - proxmox-backup-docs
+    state: absent
+    purge: true
+    autoremove: true
+
+- name: Remove additional packages if they were installed by PBS
+  ansible.builtin.apt:
+    name:
+      - nfs-common
+      - nfs4-acl-tools
+    state: absent
+    autoremove: true
+  when: mount_nfs | default(false)
+  ignore_errors: true
+
+- name: Remove Proxmox repository configuration files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/apt/sources.list.d/pbs-install-repo.list
+    - /etc/apt/sources.list.d/pbs-enterprise.list
+    - /etc/apt/sources.list.d/proxmox.sources
+
+- name: Remove Proxmox GPG keys
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/apt/trusted.gpg.d/proxmox-release-bookworm.gpg
+    - /etc/apt/trusted.gpg.d/proxmox-release-bullseye.gpg
+    - /etc/apt/trusted.gpg.d/proxmox-release-trixie.gpg
+
+- name: Remove Proxmox Backup Server configuration directory
+  ansible.builtin.file:
+    path: /etc/proxmox-backup
+    state: absent
+
+- name: Remove Proxmox Backup Server data directory (if requested)
+  ansible.builtin.file:
+    path: /var/lib/proxmox-backup
+    state: absent
+  when: pbs_remove_data | default(false)
+
+- name: Remove Proxmox Backup Server log files
+  ansible.builtin.file:
+    path: /var/log/proxmox-backup
+    state: absent
+
+- name: Remove PBS user and group
+  block:
+    - name: Remove PBS user
+      ansible.builtin.user:
+        name: "{{ pbs_user | default('backup') }}"
+        state: absent
+        remove: true
+        force: true
+      ignore_errors: true
+
+    - name: Remove PBS group
+      ansible.builtin.group:
+        name: "{{ pbs_user_group | default('backup') }}"
+        state: absent
+      ignore_errors: true
+  when: pbs_remove_user | default(true)
+
+- name: Remove NFS mount point directory
+  ansible.builtin.file:
+    path: "{{ nfs_mount_point | default('/mnt/nfs-backups') }}"
+    state: absent
+  when: mount_nfs | default(false) and pbs_remove_mount_point | default(true)
+
+- name: Update APT cache after removal
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Clean APT cache
+  ansible.builtin.apt:
+    autoclean: true
+
+- name: Display uninstallation summary
+  ansible.builtin.debug:
+    msg: |
+      Proxmox Backup Server uninstallation completed:
+      - Services stopped and disabled
+      - Packages removed and purged
+      - Configuration files cleaned
+      - Repository sources removed
+      - {{ 'User and group removed' if pbs_remove_user | default(true) else 'User and group preserved' }}
+      - {{ 'Data directory removed' if pbs_remove_data | default(false) else 'Data directory preserved' }}
+      - {{ 'NFS mount unmounted and cleaned' if mount_nfs | default(false) else 'No NFS configuration to clean' }}

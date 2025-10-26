@@ -1,0 +1,45 @@
+---
+- name: Get current LXC config
+  ansible.builtin.command:
+    cmd: pct config {{ lxc_id }}
+  register: lxc_config
+  become: true
+
+- name: Set facts for current LXC features
+  ansible.builtin.set_fact:
+    _feature_nesting_enabled: "{{ 'features: nesting=1' in lxc_config.stdout }}"
+    _feature_keyctl_enabled: "{{ 'keyctl=1' in lxc_config.stdout }}"
+
+- name: Debug current LXC features
+  ansible.builtin.debug:
+    msg: >
+      LXC {{ lxc_id }} features - nesting: {{ _feature_nesting_enabled }}, keyctl: {{ _feature_keyctl_enabled }}
+      
+- name: Check if features need to be updated
+  ansible.builtin.set_fact:    
+    _lxc_needs_update: >-
+      {{
+        (lxc_nesting | default(true) and not _feature_nesting_enabled)
+        or
+        (lxc_keyctl | default(true) and not _feature_keyctl_enabled)
+      }}
+
+- name: Enable LXC features using pct command
+  ansible.builtin.command: >
+    pct set {{ lxc_id }}
+    -features nesting=1,keyctl=1
+  when: _lxc_needs_update
+  become: true
+  notify: "restart lxc"
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait for container to restart and become available
+  ansible.builtin.command:
+    cmd: pct status {{ lxc_id }}
+  register: container_status
+  retries: 10
+  delay: 6
+  until: "{{ container_status.stdout is search('status: running') }}"
+  become: true

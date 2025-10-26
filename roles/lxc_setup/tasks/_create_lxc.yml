@@ -1,0 +1,39 @@
+---
+- name: Create LXC container for PBS on Proxmox host
+  community.general.proxmox:
+    api_host: "{{ proxmox_api_host | default(groups['proxmox'][0]) }}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    api_user: "{{ proxmox_api_user | default('root@pam') }}"
+    vmid: "{{ lxc_id }}"
+    node: "{{ proxmox_node }}"
+    hostname: "{{ lxc_hostname | default('pbs') }}"
+    ostemplate: "{{ lxc_image | default('local:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst') }}"
+    cores: "{{ lxc_cores | default(2) }}"
+    memory: "{{ lxc_memory_mb | default(2048) }}"
+    swap: "{{ lxc_swap_mb | default(0) }}"
+    disk_volume:
+      storage: "{{ lxc_storage }}"
+      size: "{{ lxc_rootfs_size | default(8) }}"
+    netif:
+      net0: "{{ lxc_net0 | default('name=eth0,ip=dhcp,bridge=vmbr1') }}"
+    password: "{{ lxc_root_password }}"
+    unprivileged: "{{ (not (lxc_privileged | default(true))) | bool }}"
+    pubkey: "{{ lookup('file', lxc_ssh_public_key | default('~/.ssh/id_rsa.pub')) }}"
+    state: present
+    timezone: host
+    onboot: true
+  delegate_to: localhost
+
+- name: Start the LXC container
+  community.general.proxmox:
+    api_host: "{{ proxmox_api_host | default(groups['proxmox'][0])}}"
+    api_token_id: "{{ proxmox_api_token_id }}"
+    api_token_secret: "{{ proxmox_api_token_secret }}"
+    api_user: "{{ proxmox_api_user | default('root@pam') }}"
+    vmid: "{{ lxc_id }}"
+    hostname: "{{ lxc_hostname | default('pbs') }}"
+    node: "{{ proxmox_node }}"
+    state: started
+  delegate_to: localhost
+

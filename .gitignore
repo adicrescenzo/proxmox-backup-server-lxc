@@ -1,0 +1,25 @@
+# Ansible
+*.retry
+.ansible/
+.vault_pass
+
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.tar.gz
+build/

@@ -1,0 +1,34 @@
+- name: Create/configure LXC Container for Proxmox Backup Server
+  hosts: "{{ proxmox_host | default(groups['proxmox'][0]) }}"
+  become: false
+  roles:
+    - role: adicrescenzo.proxmox_backup_server_lxc.lxc_setup
+      vars:
+        lxc_install: true
+        lxc_configure: true
+        proxmox_node: "pve"
+        proxmox_api_token_id: "ansible"
+        proxmox_api_user: "root@pam"
+        lxc_storage: "local-lvm"
+        lxc_image: "iso:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
+        lxc_id: 106
+        lxc_net0: "name=eth0,gw=10.10.40.1,ip=10.10.40.16/24,tag=40,bridge=vmbr1"
+        lxc_nesting: true
+        lxc_keyctl: true
+        lxc_root_password: "{{ pbs_lxc_root_password }}"
+      when: manage_lxc | default(true)
+        
+- name: Install and configure Proxmox Backup Server
+  hosts: "{{ pbs_host | default(groups['pbs']) }}"
+  become: true
+  roles:
+    - role: adicrescenzo.proxmox_backup_server_lxc.pbs_setup
+      vars:
+        install: true
+        configure: true
+        mount_nfs: true
+        nfs_server: "truenas.lab.lan"
+        nfs_share: "/mnt/hddstorage/pve-backups"
+        nfs_mount_point: "/mnt/nfs-backups"
+        pbs_tls_manage: true
+      when: delete | default(false) != true

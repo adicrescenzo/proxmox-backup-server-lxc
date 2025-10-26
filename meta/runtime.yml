@@ -1,0 +1,4 @@
+#SPDX-License-Identifier: MIT
+---
+# Minimum required Ansible version
+requires_ansible: '>=2.9.10'

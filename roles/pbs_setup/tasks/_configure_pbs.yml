@@ -1,0 +1,62 @@
+- name: Configure NFS mount point
+  block:
+    - name: Ensure nfs-common is installed
+      ansible.builtin.apt:
+        name:
+          - nfs-common
+          - nfs4-acl-tools
+        state: present
+    
+    - name: Ensure mount point directory exists
+      ansible.builtin.file:
+        path: "{{ nfs_mount_point }}"
+        state: directory
+        owner: "{{ _pbs_user }}"
+        group: "{{ _pbs_user_group }}"
+        mode: '0755'
+
+    # ansible.posix.mount seems to have issues in LXC containers, so we use a systemd mount unit instead
+    - name: Deploy systemd mount unit
+      ansible.builtin.template:
+        src: nfs-backups.mount.j2
+        dest: /etc/systemd/system/mnt-nfs\x2dbackups.mount
+        mode: '0644'
+      become: true
+
+    - name: systemd daemon-reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+      become: true
+
+    - name: Ensure NFS mount active and enabled
+      ansible.builtin.systemd:
+        name: mnt-nfs\x2dbackups.mount
+        state: started
+        enabled: true
+      become: true
+  when: mount_nfs | bool | default(false) and not _nfs_share_mounted
+
+- name: Configure TLS for Proxmox Backup Server
+  block:
+    - name: Deploy Proxmox Backup Server TLS certificate
+      ansible.builtin.copy:
+        content: "{{ pbs_tls_cert }}"
+        dest: "{{ pbs_tls_cert_path | default('/etc/proxmox-backup/proxy.pem') }}"
+        owner: root
+        group: "{{ _pbs_user_group }}"
+        mode: '0640'
+      notify: "restart pbs"
+    
+    - name: Deploy Proxmox Backup Server TLS private key
+      ansible.builtin.copy:
+        content: "{{ pbs_tls_cert_key }}"
+        dest: "{{ pbs_tls_key_path | default('/etc/proxmox-backup/proxy.key') }}"
+        owner: root
+        group: "{{ _pbs_user_group }}"
+        mode: '0640'
+      no_log: true
+      notify: "restart pbs"
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+  when: pbs_tls_manage | bool | default(false)

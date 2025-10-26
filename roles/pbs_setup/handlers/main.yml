@@ -1,0 +1,8 @@
+#SPDX-License-Identifier: MIT
+---
+- name: Restart Proxmox Backup Server
+  ansible.builtin.systemd:
+    name: proxmox-backup-proxy
+    state: restarted
+  become: true
+  listen: "restart pbs"

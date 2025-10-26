@@ -1,0 +1,88 @@
+---
+- name: Determine repository component based on license
+  set_fact:
+    _pbs_license: "{{ pbs_license | default('community') | trim }}"
+    _pbs_repo_component: "{{ 'pbs-no-subscription' if pbs_license | default('community') == 'community' else 'pbs-enterprise' | trim }}"
+    _pbs_repo_url: "{{ 'http://download.proxmox.com/debian/pbs' if pbs_license | default('community') == 'community' else 'https://enterprise.proxmox.com/debian/pbs' | trim }}"
+
+- name: Set codename based on distribution and version
+  set_fact:
+   _pbs_codename: >-
+      {{ (
+        'trixie' if ansible_distribution == 'Debian' and ansible_distribution_version is version('13', '>=') else
+        'bookworm' if ansible_distribution == 'Debian' and ansible_distribution_version is version('12', '>=') else
+        'bullseye' if ansible_distribution == 'Debian' and ansible_distribution_version is version('11', '>=') else
+        'bookworm' if ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('24.04', '>=') else
+        'bookworm'
+      ) | trim }}
+
+- name: Define GPG key URLs for Proxmox repositories
+  ansible.builtin.set_fact:
+    _proxmox_repository_key: "{{ 'https://enterprise.proxmox.com/debian/proxmox-release-' ~ _pbs_codename ~ '.gpg' | trim }}"
+
+- name: Ensure directory for trusted GPG keys exists
+  ansible.builtin.file:
+    path: /etc/apt/trusted.gpg.d
+    state: directory
+    mode: '0755'
+
+- name: Install Proxmox Repository GPG key 
+  ansible.builtin.get_url:
+    url: "{{ _proxmox_repository_key }}"
+    dest: "/etc/apt/trusted.gpg.d/proxmox-release-{{ _pbs_codename }}.gpg"
+    mode: '0644'
+
+- name: Update APT cache
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Configure Proxmox Backup Server APT source for Debian 13 (Trixie) with .sources file
+  ansible.builtin.template:
+    src: pbs-trixie-sources.j2
+    dest: /etc/apt/sources.list.d/proxmox.sources
+    mode: '0644'
+  when: _pbs_codename == 'trixie'
+
+- name: Configure Proxmox Backup Server APT source for Debian 11/12 and Ubuntu with .list file
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list.d/pbs-install-repo.list
+    content: |
+      deb {{ _pbs_repo_url }} {{ _pbs_codename | trim }} {{ _pbs_repo_component }}
+    mode: '0644'
+  when: _pbs_codename != 'trixie'
+
+- name: Set Proxmox Backup Server user and group variables
+  set_fact:
+    _pbs_user: "{{ pbs_user | default('backup') }}"
+    _pbs_user_group: "{{ pbs_user_group | default('backup') }}"
+
+- name: "Create group {{ _pbs_user_group }}"
+  ansible.builtin.group:
+    name: "{{ _pbs_user_group }}"
+    state: present
+
+- name: "Create user {{ _pbs_user }} and assign to group {{ _pbs_user_group }}"
+  ansible.builtin.user:
+    name: "{{ _pbs_user }}"
+    group: "{{ _pbs_user_group }}"
+    create_home: yes
+    shell: /bin/bash
+    state: present
+
+- name: Perform a full system upgrade before package installation
+  ansible.builtin.apt:
+    update_cache: yes         # Update the package index cache
+    upgrade: dist             # Perform a full distribution upgrade
+    cache_valid_time: 3600    # Only update cache if older than one hour
+    
+- name: Install proxmox-backup-server package
+  ansible.builtin.apt:
+    name: proxmox-backup-server
+    state: present
+    update_cache: yes
+
+- name: Remove pbs-enterprise.list if license is community
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/pbs-enterprise.list
+    state: absent
+  when: _pbs_license == "community"
