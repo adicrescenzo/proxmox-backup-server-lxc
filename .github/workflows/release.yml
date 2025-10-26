@@ -15,6 +15,10 @@ name: Release Collection to Galaxy
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      pull-requests: read
 
     steps:
       - name: Checkout repository
