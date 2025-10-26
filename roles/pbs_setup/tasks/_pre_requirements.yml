@@ -36,7 +36,7 @@
 - name: Check if NFS share is already mounted
   ansible.builtin.set_fact:
     _nfs_share_mounted: "{{ ansible_mounts | selectattr('mount', 'equalto', nfs_mount_point) | list | length > 0 }}"
-  when: mount_nfs | bool | default(false)  
+  when: mount_nfs | bool | default(false)
 
 - name: Debug NFS share mount status
   ansible.builtin.debug:

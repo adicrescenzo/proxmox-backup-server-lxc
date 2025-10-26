@@ -20,7 +20,9 @@
 
     - name: Check if NFS share is mounted
       ansible.builtin.set_fact:
-        _nfs_mounted: "{{ ansible_mounts | selectattr('mount', 'equalto', nfs_mount_point | default('/mnt/nfs-backups')) | list | length > 0 }}"
+        _nfs_mounted: >-
+          {{ ansible_mounts | selectattr('mount', 'equalto', nfs_mount_point |
+          default('/mnt/nfs-backups')) | list | length > 0 }}
 
     - name: Stop and disable NFS mount service
       ansible.builtin.systemd:

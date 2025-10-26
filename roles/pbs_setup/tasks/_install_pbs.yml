@@ -1,13 +1,17 @@
 ---
 - name: Determine repository component based on license
-  set_fact:
+  ansible.builtin.set_fact:
     _pbs_license: "{{ pbs_license | default('community') | trim }}"
-    _pbs_repo_component: "{{ 'pbs-no-subscription' if pbs_license | default('community') == 'community' else 'pbs-enterprise' | trim }}"
-    _pbs_repo_url: "{{ 'http://download.proxmox.com/debian/pbs' if pbs_license | default('community') == 'community' else 'https://enterprise.proxmox.com/debian/pbs' | trim }}"
+    _pbs_repo_component: >-
+      {{ 'pbs-no-subscription' if pbs_license | default('community') == 'community'
+      else 'pbs-enterprise' | trim }}
+    _pbs_repo_url: >-
+      {{ 'http://download.proxmox.com/debian/pbs' if pbs_license |
+      default('community') == 'community' else 'https://enterprise.proxmox.com/debian/pbs' | trim }}
 
 - name: Set codename based on distribution and version
-  set_fact:
-   _pbs_codename: >-
+  ansible.builtin.set_fact:
+    _pbs_codename: >-
       {{ (
         'trixie' if ansible_distribution == 'Debian' and ansible_distribution_version is version('13', '>=') else
         'bookworm' if ansible_distribution == 'Debian' and ansible_distribution_version is version('12', '>=') else
@@ -18,7 +22,9 @@
 
 - name: Define GPG key URLs for Proxmox repositories
   ansible.builtin.set_fact:
-    _proxmox_repository_key: "{{ 'https://enterprise.proxmox.com/debian/proxmox-release-' ~ _pbs_codename ~ '.gpg' | trim }}"
+    _proxmox_repository_key: >-
+      {{ 'https://enterprise.proxmox.com/debian/proxmox-release-' ~
+      _pbs_codename ~ '.gpg' | trim }}
 
 - name: Ensure directory for trusted GPG keys exists
   ansible.builtin.file:
@@ -26,7 +32,7 @@
     state: directory
     mode: '0755'
 
-- name: Install Proxmox Repository GPG key 
+- name: Install Proxmox Repository GPG key
   ansible.builtin.get_url:
     url: "{{ _proxmox_repository_key }}"
     dest: "/etc/apt/trusted.gpg.d/proxmox-release-{{ _pbs_codename }}.gpg"
@@ -74,7 +80,7 @@
     update_cache: yes         # Update the package index cache
     upgrade: dist             # Perform a full distribution upgrade
     cache_valid_time: 3600    # Only update cache if older than one hour
-    
+
 - name: Install proxmox-backup-server package
   ansible.builtin.apt:
     name: proxmox-backup-server

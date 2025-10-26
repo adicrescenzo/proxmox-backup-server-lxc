@@ -14,9 +14,9 @@
   ansible.builtin.debug:
     msg: >
       LXC {{ lxc_id }} features - nesting: {{ _feature_nesting_enabled }}, keyctl: {{ _feature_keyctl_enabled }}
-      
+
 - name: Check if features need to be updated
-  ansible.builtin.set_fact:    
+  ansible.builtin.set_fact:
     _lxc_needs_update: >-
       {{
         (lxc_nesting | default(true) and not _feature_nesting_enabled)

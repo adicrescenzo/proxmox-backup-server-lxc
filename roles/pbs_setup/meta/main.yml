@@ -1,4 +1,5 @@
-#SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: MIT
+---
 galaxy_info:
   author: adicrescenzo
   description: "Configure existing LXC containers on Proxmox to run Proxmox Backup Server"

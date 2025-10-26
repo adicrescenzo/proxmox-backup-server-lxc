@@ -2,7 +2,7 @@
 # - name: Stop LXC Container for PBS on Proxmox host
 #   ansible.builtin.command: "pct stop {{ lxc_id }}"
 #   become: true
-  
+
 - name: Delete LXC container for PBS on Proxmox host
   community.general.proxmox:
     api_host: "{{ proxmox_api_host | default(groups['proxmox'][0]) }}"

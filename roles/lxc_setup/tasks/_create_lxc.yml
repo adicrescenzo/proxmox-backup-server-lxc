@@ -36,4 +36,3 @@
     node: "{{ proxmox_node }}"
     state: started
   delegate_to: localhost
-

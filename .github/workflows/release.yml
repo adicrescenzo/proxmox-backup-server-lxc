@@ -1,6 +1,7 @@
+---
 name: Release Collection to Galaxy
 
-on:
+'on':
   push:
     tags:
       - 'v*'
@@ -14,7 +15,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -77,19 +78,23 @@ jobs:
           release_name: Release ${{ steps.version.outputs.VERSION }}
           body: |
             ## Changes in version ${{ steps.version.outputs.VERSION }}
-            
+
             ### Features
             - Automated Proxmox Backup Server deployment in LXC containers
             - Support for both Community and Enterprise editions
             - NFS storage mount configuration
             - TLS certificate management
             - Complete infrastructure as code solution
-            
+
             ### Installation
             ```bash
-            ansible-galaxy collection install adicrescenzo.proxmox_backup_server_lxc:${{ steps.version.outputs.VERSION }}
+            ansible-galaxy collection install \
+              adicrescenzo.proxmox_backup_server_lxc:${{ steps.version.outputs.VERSION }}
             ```
-            
+
+            See the [README](https://github.com/adicrescenzo/proxmox-backup-server-lxc/blob/main/README.md) for usage instructions.
+            ```
+
             See the [README](https://github.com/adicrescenzo/proxmox-backup-server-lxc/blob/main/README.md) for detailed usage instructions.
           draft: false
           prerelease: false

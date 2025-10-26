@@ -1,3 +1,4 @@
+---
 - name: Configure NFS mount point
   block:
     - name: Ensure nfs-common is installed
@@ -6,7 +7,6 @@
           - nfs-common
           - nfs4-acl-tools
         state: present
-    
     - name: Ensure mount point directory exists
       ansible.builtin.file:
         path: "{{ nfs_mount_point }}"
@@ -46,7 +46,6 @@
         group: "{{ _pbs_user_group }}"
         mode: '0640'
       notify: "restart pbs"
-    
     - name: Deploy Proxmox Backup Server TLS private key
       ansible.builtin.copy:
         content: "{{ pbs_tls_cert_key }}"

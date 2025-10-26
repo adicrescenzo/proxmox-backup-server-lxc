@@ -1,0 +1,26 @@
+---
+all:
+  children:
+    proxmox:
+      hosts:
+        test-proxmox:
+          ansible_host: localhost
+          ansible_connection: local
+    pbs:
+      hosts:
+        test-pbs:
+          ansible_host: localhost
+          ansible_connection: local
+  vars:
+    # Test variables to satisfy playbook requirements
+    proxmox_node: "test-node"
+    proxmox_api_token_id: "test-token"
+    proxmox_api_token_secret: "test-secret"
+    lxc_id: 999
+    lxc_root_password: "test-password"
+    lxc_storage: "test-storage"
+    pbs_lxc_root_password: "test-password"
+    
+    # Disable actual execution for testing
+    manage_lxc: false
+    delete: false

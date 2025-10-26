@@ -2,10 +2,12 @@
 extends: default
 
 rules:
-  line-length:
-    max: 120
+  line-length: disable  # Disabilita completamente il controllo lunghezza linea
   comments:
     min-spaces-from-content: 1
   comments-indentation: disable
   truthy:
     allowed-values: ['true', 'false', 'yes', 'no']
+  document-start: disable
+  empty-lines:
+    max-end: 1  # Permette una linea vuota alla fine

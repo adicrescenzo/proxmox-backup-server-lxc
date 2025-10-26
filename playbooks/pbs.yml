@@ -1,5 +1,6 @@
+---
 - name: Create/configure LXC Container for Proxmox Backup Server
-  hosts: "{{ proxmox_host | default(groups['proxmox'][0]) }}"
+  hosts: "{{ proxmox_host | default(groups.get('proxmox', ['localhost'])[0]) }}"
   become: false
   roles:
     - role: adicrescenzo.proxmox_backup_server_lxc.lxc_setup
@@ -17,9 +18,9 @@
         lxc_keyctl: true
         lxc_root_password: "{{ pbs_lxc_root_password }}"
       when: manage_lxc | default(true)
-        
+
 - name: Install and configure Proxmox Backup Server
-  hosts: "{{ pbs_host | default(groups['pbs']) }}"
+  hosts: "{{ pbs_host | default(groups.get('pbs', ['localhost'])[0]) }}"
   become: true
   roles:
     - role: adicrescenzo.proxmox_backup_server_lxc.pbs_setup
