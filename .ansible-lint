@@ -1,0 +1,9 @@
+---
+exclude_paths:
+  - .github/
+  - .yamllint
+  - changelogs/
+  
+skip_list:
+  - yaml[line-length]
+  - name[casing]
